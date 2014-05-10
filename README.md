@@ -70,13 +70,13 @@ $
 
 ### Included Internal Commands
 
-1. verbose on/off: turn the shell verbose on or off based on the argument passed to the verbose command. When verbose is on, the shell should print a table/list as shown in the examples. After the command executes, the verbose mode should print the execution status value returned to the shell by the command. This is also shown in the examples.
+* <strong>verbose on/off</strong>: turn the shell verbose on or off based on the argument passed to the verbose command. When verbose is on, the shell should print a table/list as shown in the examples. After the command executes, the verbose mode should print the execution status value returned to the shell by the command. This is also shown in the examples.
 The output format should be a reasonable design of your own.
 If the user enters something other than 'on' or 'off', the shell should print a usage message like this:
 ```
 		usage: verbose [on|off]
 ```	
-2. help: print a list of internal commands. The output format should be a reasonable design of your own.
-3. history: print a list of commands executed so far, including their arguments. The history list should be numbered starting from the value 1. The output format should be a reasonable design of your own.
+* <strong>help</strong>: print a list of internal commands. The output format should be a reasonable design of your own.
+* <strong>history</strong>: print a list of commands executed so far, including their arguments. The history list should be numbered starting from the value 1. The output format should be a reasonable design of your own.
 The history command should display only the last 10 commands that were entered. The numbering may be either always 1 to 10 or values such as the pattern (N-10), (N-9), ... (N), where N is the number of the history command just entered.
-4. quit: clean up memory and gracefully terminate mish.
+* <strong>quit</strong>: clean up memory and gracefully terminate mish.
