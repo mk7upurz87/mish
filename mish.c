@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <time.h>
 
 #include "mish.h"
 
@@ -25,6 +26,8 @@
 int verbose_mode = 0;
 char* line_read = NULL;
 char** cmd_tokens = NULL;
+COMMAND hist[10];
+time_t raw_time;
 
 /**
  * Take in the user input and verify.  Then execute the corresponding command
@@ -46,12 +49,84 @@ int main( int argc, char* argv[] ) {
             cmd_num++;
         }
 
-        cmd_tokens = str_tokenize( line_read );
+        char* token = strtok( line_read, " " );
+        char* option;
 
-        // char c = cmd_tokens[0][0];
-        // if (c == EOF) {
-        //      break;
+        // if(token[0] == 'EOF') {
+        //     token = "quit\n";
+        //     printf("quitting...");
         // }
+        if(strcmp(token, "verbose\n") == 0 || strcmp(token, "verbose") == 0) {
+
+            option = strtok( NULL, " " );
+            if(option != NULL) {
+                
+                char* cmd = malloc(sizeof(char) * 8);
+                cmd = "verbose\0";
+
+                char* options[] = { cmd, option };
+                
+                printf("adding command... or trying too!");
+                
+                add_to_history( cmd, cmd_num, options );
+                verbose(2, options);
+            } else {
+                printf("usage: verbose [on|off]\n");
+            }
+        }
+        else if(strcmp(token, "help\n") == 0) {
+            char* options[] = {"help"};
+            help(1, options);
+        }
+        else if(strcmp(token, "history\n") == 0) {
+            char* options[] = {"history"};
+            history(1, options);
+        }
+        else if(strcmp(token, "quit\n") == 0) {
+            char* options[] = {"quit"};
+
+            // only close if all memory cleared properly
+            if(quit(1, options) == 1) {
+                return 0;
+            }
+        } else {
+            // cmd_tokens = str_tokenize( line_read );
+        }
+
+        // free( line_read );
+    }
+}
+
+/**
+ * add the command to the end of the list, return the last empty index
+ */
+int add_to_history( char* user_command, int cmd_num, char* options[] ) {
+    printf("adding command...");
+    // printf("adding command: {%s, %s, %d}", (char *)localtime(&raw_time), user_command, cmd_num);
+    char *curr_time = (char *)localtime(&raw_time);
+
+    // COMMAND entry = malloc(sizeof(user_command) + sizeof(cmd_num) + sizeof(options) + sizeof(curr_time));
+    // entry->name = command;
+    // entry->time = curr_time;
+    // entry->id = cmd_num;
+    // entry->args = options;
+    COMMAND entry = { user_command, curr_time, cmd_num, (void **)options };
+
+    // printf("adding co: {%s, %s, %d}", entry.name, entry.time, entry.id);
+
+    int i = 0;
+    if(hist[10].name[0] != '\0') {
+        printf("here");
+        for(int j = 0; j < 9; j++) {
+            hist[j] = hist[j + 1];
+        }
+        hist[10] = entry;
+        return 10;
+    } else {
+        // find the next empty index
+        while(i < 10 && hist[i++].name[0] != '\0') {}
+        hist[i] = entry;
+        return i + 1;
     }
 }
 
@@ -62,7 +137,8 @@ char** str_tokenize( char* str ) {
 
     char** results;
     char* token = strtok( str, " " );
-    char* long_token = "";
+    char* long_token;
+    char* new_str;
     int between_quotes = 0;
     char delim = '\"';
 
@@ -75,16 +151,17 @@ char** str_tokenize( char* str ) {
                 // we're now between quotes so begin storing as a large token
                 printf("entering quotes = %s\n", token);
                 token = remove_symbol( token, delim);
-                char* new_str;
-                asprintf(&new_str, "%s %s", long_token, token);
-                long_token = new_str;
+                printf("removed quotes = %s\n", token);
+                long_token = malloc(sizeof(char) * (strlen(long_token) + strlen(token)));
+                long_token = token;
                 between_quotes = 1;
+
                 printf("long_token = %s\n", long_token);
             } else {
                 // we're already storing a large token so stop it
                 printf( "leaving quotes = %s\n", token );
                 token = remove_symbol( token, delim);
-                char* new_str;
+                new_str = malloc(sizeof(char) * (strlen(long_token) + strlen(token)));
                 asprintf(&new_str, "%s %s", long_token, token);
                 long_token = new_str;
                 between_quotes = 0;
@@ -98,7 +175,7 @@ char** str_tokenize( char* str ) {
         // a token before this started a quotes argument, keep appending to the long token
         if(between_quotes) {
             token = remove_symbol( token, delim);
-            char* new_str;
+            new_str = malloc(sizeof(char) * (strlen(long_token) + strlen(token)));
             asprintf(&new_str, "%s %s", long_token, token);
             long_token = new_str;
             printf("long_token = %s\n", long_token);
@@ -107,8 +184,10 @@ char** str_tokenize( char* str ) {
         } else {
             // push the token to the results
         }
+        free(new_str);
         token = strtok( NULL, " " );
     }
+    free(token);
     return results;
 }
 
@@ -124,6 +203,28 @@ int contains( char* word, char sym) {
     return 0;
 }
 
+/**
+ * if the string contains the word, return 1
+ */
+int contains_word( char* str, char* word) {
+    for(int i = 0, j = 0; i < strlen(str); i++) {
+
+        // the current string index has the same character sequence as the word
+        while(str[i] == word[j]) {
+            i++;
+            j++;
+
+            // the words length has been checked and the last letter is the same
+            if(j == strlen(word) && str[i] == word[j]) {
+                return 1;
+            } else
+            if(i == strlen(str) || j == strlen(word)) {
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
 /**
  * remove the symbol from the work
  */
@@ -152,21 +253,25 @@ char* remove_symbol( char* word, char sym ) {
  *  if successful, return true
  */
 int verbose( int argc, char *argv [] ) {
-    if(argv[0] == ( char* )"on") {
+
+    if( strcmp(argv[1], "on\n") == 0 ) {
         verbose_mode = 1;
-        printf( "you are in verbose mode.\n" );
+        printf( "entered verbose mode.\n" );
         return 1;
     }
-    if( argv[0] == ( char* )"off" ) {
+    if( strcmp(argv[1], "off\n") == 0 ) {
         int previous_setting = verbose_mode;
 
         if( previous_setting == 1 ) {
             verbose_mode = 0;
-            printf( "you left verbose mode.\n" );
+            printf( "exited verbose mode.\n" );
         } else {
-            printf( "you are in verbose mode already.\n" );
+            printf( "already in verbose mode.\n" );
         }
         return 1;
+    }
+    else {
+        printf( "usage: verbose [on|off]" );
     }
     return 0;
 }
@@ -176,11 +281,13 @@ int verbose( int argc, char *argv [] ) {
  */
 int help( int argc, char *argv [] ) {
     printf(
-        "Possible commands with mish!\n"
-        "\tverbose - "
+        "\n"
+        "Possible commands with mish:\n"
+        "\tverbose - prints the command, results and major operations\n"
         "\thelp - list of all internal commands\n"
         "\thistory - list 10 most recent internal commands\n"
-        "\tquit - terminate the application\n");
+        "\tquit - terminate the application\n"
+        "\n");
 
     return 1;
 }

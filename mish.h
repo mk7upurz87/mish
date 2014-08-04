@@ -8,15 +8,14 @@
  * date: 05/10/1214
  */
 
-#ifndef command
-
-struct command {
+struct command_entry {
+	char *name;
 	char *time;
     int id;
-    void *args;
+    void **args;
 };
 
-#endif
+typedef struct command_entry COMMAND;
 
 /*************************************
  * 			INTERNAL COMMANDS
@@ -72,3 +71,13 @@ char* remove_symbol( char* word, char sym );
  * remove all whitespace from string and return the new string
  */
 char* remove_whitespace( char* input );
+
+/**
+ * if the string contains the word, return 1
+ */
+int contains_word( char* str, char* word );
+
+/**
+ * add the command to the end of the list, return the last empty index
+ */
+int add_to_history( char* user_command, int cmd_num, char* options[] );

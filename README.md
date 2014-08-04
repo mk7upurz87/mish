@@ -3,17 +3,6 @@ mish
 
 The mish shell is a simple interactive shell capable of executing simple UNIX commands and some internal commands specified later in this document.
 
-<<<<<<< HEAD
-Mish gets each line of input from the terminal console, formulates that input into a user command, and creates a child process to execute that command. The mish shell continues to process each line entered until any one of these events occur:
-
-the shell encounters an error reading input;
-
-the shell encounters the end of input (e.g. file input);
-
-the user issues the command to terminate the shell; or
-
-the user signals the shell that there is no more input.
-=======
 Mish gets each line of input from the terminal console, formulates that input into a user command, and creates a child process to execute that command. The mish shell continues to process each line entered until specific events occur.
 
 ====
@@ -91,4 +80,13 @@ If the user enters something other than 'on' or 'off', the shell should print a 
 * <strong>history</strong>: print a list of commands executed so far, including their arguments. The history list should be numbered starting from the value 1. The output format should be a reasonable design of your own.
 The history command should display only the last 10 commands that were entered. The numbering may be either always 1 to 10 or values such as the pattern (N-10), (N-9), ... (N), where N is the number of the history command just entered.
 * <strong>quit</strong>: clean up memory and gracefully terminate mish.
->>>>>>> 7d3c4866c7641421ae64f2cb5eb8f82c7e946014
+
+### Known Bugs
+
+* Does not record history and therefore cannot print history although command runs, it doesn't show anything
+* Does not properly tokenize before segmentation fault
+* Because tokenizing the command line does not work the custom commands could not be implemented
+* The application supports 3 of 4 main functions and has ground work in place to get custom commands in
+* Does not fork separate processes
+* Does not act as a multithreaded application
+* Does quit gracefully!
