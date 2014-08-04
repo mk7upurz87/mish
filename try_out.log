@@ -1,0 +1,16 @@
+Copying files...done
+Initializing - please wait...
+ON-TIME submission of project3-1
+Compiling your submission....
+gcc -ggdb -Wall  -std=c99  -c mish.c
+mish.c: In function 'str_tokenize':
+mish.c:175:5: warning: 'results' is used uninitialized in this function [-Wuninitialized]
+gcc -ggdb -Wall  -std=c99 -o mish mish.o  
+
+Creating submission archive - please wait....
+Files being saved:
+mish.c mish.h readme.txt
+
+
+Submission dated 2014/05/11 23:39:31 has been completed
+Your files: readme.txt mish.h mish.c 
