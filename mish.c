@@ -16,8 +16,11 @@
 #include <time.h>
 #include <string.h>
 #include <time.h>
+#include <pthread.h>
 
 #include "mish.h"
+#include "dlList.h"
+
 
 /**
  * Global variables
@@ -25,8 +28,9 @@
 
 int verbose_mode = 0;
 char* line_read = NULL;
-char** cmd_tokens = NULL;
+COMMAND cmd_tokens;
 COMMAND hist[10];
+int history_length;
 time_t raw_time;
 
 /**
@@ -37,9 +41,17 @@ int main( int argc, char* argv[] ) {
     int cmd_num = 1;
     size_t nbytes = 0;
     int bytes_read;
+    history_length = 0;
 
     while( 1 ) {
         printf ( "mish[%d]> ", cmd_num );
+
+        // If the user enters a 1 as a command line argument
+        // start in verbose mode
+        if( argc == 2 && atoi(argv[1]) == 1) {
+            verbose_mode = 1;
+        }
+
         line_read = ( char* )malloc( sizeof(char) );
         bytes_read = getline( &line_read, &nbytes, stdin );
 
@@ -52,131 +64,146 @@ int main( int argc, char* argv[] ) {
         char* token = strtok( line_read, " " );
         char* option;
 
-        // if(token[0] == 'EOF') {
+        // If the user enters CTRL+D command, quit the application gracefully
+        // if(token[0] == EOF ) {
         //     token = "quit\n";
         //     printf("quitting...");
         // }
+
         if(strcmp(token, "verbose\n") == 0 || strcmp(token, "verbose") == 0) {
 
             option = strtok( NULL, " " );
             if(option != NULL) {
                 
-                char* cmd = malloc(sizeof(char) * 8);
-                cmd = "verbose\0";
+                char* cmd = "verbose\0";
+                add_to_history( cmd, cmd_num, (char *[]){ option });
 
-                char* options[] = { cmd, option };
-                
-                printf("adding command... or trying too!");
-                
-                add_to_history( cmd, cmd_num, options );
-                verbose(2, options);
+                char* opts[] = { cmd, option };
+                verbose(2, opts);
+
             } else {
                 printf("usage: verbose [on|off]\n");
             }
         }
         else if(strcmp(token, "help\n") == 0) {
-            char* options[] = {"help"};
-            help(1, options);
+            char* cmd = "help\0";
+            add_to_history( cmd, cmd_num, NULL );
+
+            char* opts[] = { cmd };
+            help(1, opts);
         }
         else if(strcmp(token, "history\n") == 0) {
-            char* options[] = {"history"};
-            history(1, options);
+            char* cmd = "history\0";
+            add_to_history( cmd, cmd_num, NULL );
+
+            char* opts[] = { cmd };
+            history(1, opts);
         }
         else if(strcmp(token, "quit\n") == 0) {
-            char* options[] = {"quit"};
+            char* opts[] = { "quit" };
 
             // only close if all memory cleared properly
-            if(quit(1, options) == 1) {
+            if(quit(1, opts) == 1) {
                 return 0;
             }
         } else {
-            // cmd_tokens = str_tokenize( line_read );
-        }
+            cmd_tokens = str_to_cmd( line_read );
+            
+            char* cmd = cmd_tokens.name;
+            // char* options[] = { cmd_tokens.args[0] };
 
-        // free( line_read );
+            // Output the command and arguments being executed in a new thread
+            printf("\tcommand: %s", line_read ? line_read : "\n");
+            printf("\tinput command tokens:\n");
+            printf("\t[0]: %s", cmd ? cmd : "\n");
+            // if(options != NULL && options[0] != NULL) {
+            //     for(int i = 0; options[i]; i++) {
+            //         // Output the arguments, i + 1 because the cmd was the first arg
+            //         printf("\t[%d]: %s\n", i + 1, options[i]);
+            //     }
+            // }
+            // Spawn new thread here and execute corresponding command
+            // int result = customCommand(cmd_tokens);
+            // if(result == 0) {
+            //     perror("%d")
+            // }
+            // else {
+            //     add_to_history( cmd, cmd_num, options );
+            // }   
+        }
     }
 }
 
 /**
- * add the command to the end of the list, return the last empty index
+ * using the quotation character as a marker for the start of arguments,
+ * create an array of arguments.
  */
-int add_to_history( char* user_command, int cmd_num, char* options[] ) {
-    printf("adding command...");
-    // printf("adding command: {%s, %s, %d}", (char *)localtime(&raw_time), user_command, cmd_num);
+COMMAND str_to_cmd( char* str ) {
+
+    // char **arg_tokens = NULL;
+    char *curr_token = strtok( str, " " );
     char *curr_time = (char *)localtime(&raw_time);
 
-    // COMMAND entry = malloc(sizeof(user_command) + sizeof(cmd_num) + sizeof(options) + sizeof(curr_time));
-    // entry->name = command;
-    // entry->time = curr_time;
-    // entry->id = cmd_num;
-    // entry->args = options;
-    COMMAND entry = { user_command, curr_time, cmd_num, (void **)options };
+    //     switch(curr_token[0]) { // the real value
+    //         case '\0'
+    //             // code for arrow up
+    //             break;
+    //     }
 
-    // printf("adding co: {%s, %s, %d}", entry.name, entry.time, entry.id);
-
-    int i = 0;
-    if(hist[10].name[0] != '\0') {
-        printf("here");
-        for(int j = 0; j < 9; j++) {
-            hist[j] = hist[j + 1];
-        }
-        hist[10] = entry;
-        return 10;
-    } else {
-        // find the next empty index
-        while(i < 10 && hist[i++].name[0] != '\0') {}
-        hist[i] = entry;
-        return i + 1;
-    }
-}
-
-/**
- * using the delimeter passed in, separate the string into tokens
- */
-char** str_tokenize( char* str ) {
-
-    char** results;
-    char* token = strtok( str, " " );
-    char* long_token;
-    char* new_str;
+    COMMAND cmd = { curr_token, curr_time, 0, (void *)&("\0") };
+    printf("%s: No such file or directory\n", cmd.name);
+    char* long_token = NULL;
+    char* new_str = NULL;
     int between_quotes = 0;
     char delim = '\"';
 
-    // walk through other tokens
-    while( token != NULL ) {
 
+    // walk through other tokens
+    while( curr_token != NULL ) {
         // the token has quotes so begin storing what follows as a single token
-        if(contains(token, delim)) {
+
+        if(contains(curr_token, delim)) {
+            // results
+            // printf("token: %s has quotes...\n", token);
+
             if(!between_quotes) {
                 // we're now between quotes so begin storing as a large token
-                printf("entering quotes = %s\n", token);
-                token = remove_symbol( token, delim);
-                printf("removed quotes = %s\n", token);
-                long_token = malloc(sizeof(char) * (strlen(long_token) + strlen(token)));
-                long_token = token;
+                // printf("entering quotes = %s\n", token);
+                curr_token = remove_symbol( curr_token, delim);
+                // printf("removed quotes = %s\n", token);
+
+                long_token = malloc(sizeof(char) *
+                    (strlen(long_token) + strlen(curr_token)));
+                long_token = curr_token;
                 between_quotes = 1;
 
-                printf("long_token = %s\n", long_token);
+                // printf("long_token = %s\n", long_token);
             } else {
                 // we're already storing a large token so stop it
-                printf( "leaving quotes = %s\n", token );
-                token = remove_symbol( token, delim);
-                new_str = malloc(sizeof(char) * (strlen(long_token) + strlen(token)));
-                asprintf(&new_str, "%s %s", long_token, token);
+                // printf( "leaving quotes = %s\n", token );
+                curr_token = remove_symbol( curr_token, delim);
+                // printf("removed quotes = %s\n", token);
+
+                new_str = malloc(sizeof(char) *
+                    (strlen(long_token) + strlen(curr_token)));
+                asprintf(&new_str, "%s %s", long_token, curr_token);
                 long_token = new_str;
                 between_quotes = 0;
-                printf("long_token = %s\n", long_token);
+
+                // printf("long_token = %s\n", long_token);
                 // push the long token on the results, free and re-malloc
                 free(long_token);
                 long_token = "";
             }
         }
 
-        // a token before this started a quotes argument, keep appending to the long token
+        // a token before this started a quotes argument,
+        // keep appending to the long token
         if(between_quotes) {
-            token = remove_symbol( token, delim);
-            new_str = malloc(sizeof(char) * (strlen(long_token) + strlen(token)));
-            asprintf(&new_str, "%s %s", long_token, token);
+            curr_token = remove_symbol( curr_token, delim);
+            new_str = malloc(sizeof(char) *
+                (strlen(long_token) + strlen(curr_token)));
+            asprintf(&new_str, "%s %s", long_token, curr_token);
             long_token = new_str;
             printf("long_token = %s\n", long_token);
 
@@ -185,10 +212,9 @@ char** str_tokenize( char* str ) {
             // push the token to the results
         }
         free(new_str);
-        token = strtok( NULL, " " );
+        curr_token = strtok( NULL, " " );
     }
-    free(token);
-    return results;
+    return cmd;
 }
 
 /**
@@ -245,6 +271,36 @@ char* remove_symbol( char* word, char sym ) {
 }
 
 /**
+ * add the command to the end of the list
+ */
+void add_to_history( char* user_command, int cmd_num, char* options[] ) {
+    char* curr_time = (char *)localtime(&raw_time);
+
+    if(options != NULL && options[0] != NULL &&
+            strcmp(options[0], user_command) == 1) {
+
+        // Remove the command from the beginning of the options array
+        for(int i = 0; options[i] != NULL; i++) {
+            printf("options[%d] = %s\n", i, options[i]);
+        }
+    }
+
+    // Create a command object to package and store the command information
+    COMMAND entry = { user_command, curr_time, cmd_num, (void **)options };
+
+    if( history_length < 10 ) {
+        hist[ history_length ] = entry;
+        history_length++;
+    } else {
+        for(int j = 0; j < 9; j++) {
+            hist[j] = hist[j + 1];
+        }
+        hist[history_length] = entry;
+        history_length = 10;
+    }
+}
+
+/**
  * for every command in this mode show:
  *      command
  *      results of non-empty
@@ -254,24 +310,23 @@ char* remove_symbol( char* word, char sym ) {
  */
 int verbose( int argc, char *argv [] ) {
 
-    if( strcmp(argv[1], "on\n") == 0 ) {
-        verbose_mode = 1;
-        printf( "entered verbose mode.\n" );
-        return 1;
-    }
-    if( strcmp(argv[1], "off\n") == 0 ) {
-        int previous_setting = verbose_mode;
-
-        if( previous_setting == 1 ) {
-            verbose_mode = 0;
-            printf( "exited verbose mode.\n" );
-        } else {
+    if( strcmp(argv[1], "on\n") == 0) {
+        if( verbose_mode == 1 ) {
             printf( "already in verbose mode.\n" );
+        } else {
+            verbose_mode = 1;
+            printf( "entered verbose mode.\n" );
         }
         return 1;
     }
-    else {
-        printf( "usage: verbose [on|off]" );
+    if( strcmp(argv[1], "off\n") == 0 ) {
+        if( verbose_mode == 0 ) {
+            printf( "not in verbose mode.\n");
+        } else {
+            verbose_mode = 0;
+            printf( "exited verbose mode.\n" );
+        }
+        return 1;
     }
     return 0;
 }
@@ -297,6 +352,29 @@ int help( int argc, char *argv [] ) {
  * the 10 most recent commands are listed by default from oldest to newest
  */
 int history( int argc, char *argv [] ) {
+    char** cmd_arguments;
+    if( history_length == 0 ) {
+        printf( "There is no history.\n");
+        return 0;
+    }
+    for( int i = 0; i < history_length; i++ ) {
+
+        printf( "[%d] %s", hist[i].id, hist[i].name );
+        
+        cmd_arguments = (char **)(hist[i].args);
+        if(cmd_arguments != NULL && cmd_arguments[0] != NULL) {
+            printf( " %s", cmd_arguments[0] );
+        } else {
+            printf( "\n" );
+        }
+
+        // Print out all of the arguments
+        // for(int i = 0; cmd_arguments[i]; i++) {
+        //     printf(" %s\n", cmd_arguments[i]);
+        // }
+        cmd_arguments = NULL;
+    }
+    printf("\n");
     return 1;
 }
 
@@ -305,7 +383,6 @@ int history( int argc, char *argv [] ) {
  */
 int quit( int argc, char *argv [] ) {
     free( line_read );
-    free( cmd_tokens );
     return 1;
 }
 

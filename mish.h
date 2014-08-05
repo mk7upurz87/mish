@@ -55,7 +55,7 @@ int quit( int argc, char *argv [] );
 /**
  * using the delimeter passed in, separate the string into tokens
  */
-char** str_tokenize( char* str );
+COMMAND str_to_cmd( char* str );
 
 /**
  * if the word has a quotation then return true
@@ -80,4 +80,4 @@ int contains_word( char* str, char* word );
 /**
  * add the command to the end of the list, return the last empty index
  */
-int add_to_history( char* user_command, int cmd_num, char* options[] );
+void add_to_history( char* user_command, int cmd_num, char* options[] );

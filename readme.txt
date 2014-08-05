@@ -83,10 +83,20 @@ The history command should display only the last 10 commands that were entered. 
 
 ### Known Bugs
 
-* Does not record history and therefore cannot print history although command runs, it doesn't show anything
+* Ctrl+D was still throwing Segmentation Fault, currently not handled and is commented out of code
+* Verbose off command when run repeatedly will trigger a memory corruption
+* Will record history, however the results for verbose off are not as expected
 * Does not properly tokenize before segmentation fault
 * Because tokenizing the command line does not work the custom commands could not be implemented
-* The application supports 3 of 4 main functions and has ground work in place to get custom commands in
+* The application supports all of the main functions and has ground work in place to get custom commands in
 * Does not fork separate processes
-* Does not act as a multithreaded application
+* Does not yet act as a multithreaded application
 * Does quit gracefully!
+
+### Known improvements
+
+* Strip the newline character from all commands rather than handling them as is
+* Tokenize the strings earlier on and place into a Command to be handled universally
+* Enumerate the command names
+* Utilize constants
+* Make better use of perror and respective error outputs
